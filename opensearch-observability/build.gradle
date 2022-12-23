@@ -14,15 +14,18 @@ buildscript {
         buildVersionQualifier = System.getProperty("build.version_qualifier", "")
         version_tokens = opensearch_version.tokenize('-')
         opensearch_build = version_tokens[0] + '.0'
+        job_scheduler_build = version_tokens[0]
         if (buildVersionQualifier) {
             opensearch_build += "-${buildVersionQualifier}"
+            job_scheduler_build += "-${buildVersionQualifier}"
         }
         if (isSnapshot) {
             opensearch_build += "-SNAPSHOT"
+            job_scheduler_build += "-SNAPSHOT"
         }
         common_utils_version = System.getProperty("common_utils.version", opensearch_build)
         kotlin_version = System.getProperty("kotlin.version", "1.6.0")
-        job_scheduler_version = System.getProperty("job_scheduler.version", opensearch_build)
+        job_scheduler_version = System.getProperty("job_scheduler.version", job_scheduler_build)
         jackson_version = "2.14.1"
     }
 
@@ -165,7 +168,7 @@ dependencies {
     implementation group: 'com.github.wnameless.json', name: 'json-base', version: '2.2.1'
     implementation "com.fasterxml.jackson.core:jackson-databind:${jackson_version}"
     implementation "com.fasterxml.jackson.core:jackson-annotations:${jackson_version}"
-    compileOnly "${group}:opensearch-job-scheduler-spi:${job_scheduler_version}"
+    compileOnly "org.opensearch.plugin:opensearch-job-scheduler-spi:${job_scheduler_version}"
     testImplementation(
             'org.assertj:assertj-core:3.16.1',
             'org.junit.jupiter:junit-jupiter-api:5.6.2'
@@ -277,7 +280,7 @@ integTest {
 Zip bundle = (Zip) project.getTasks().getByName("bundlePlugin");
 integTest.dependsOn(bundle)
 integTest.getClusters().forEach { c -> c.plugin(project.getObjects().fileProperty().value(bundle.getArchiveFile())) }
-String jobSchedulerURL = "https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/" + opensearch_version.replace("-SNAPSHOT", "") + "/latest/linux/x64/tar/builds/opensearch/plugins/opensearch-job-scheduler-" + opensearch_build.replace("-SNAPSHOT", "") + ".zip"
+String jobSchedulerURL = "https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/" + opensearch_version.replace("-SNAPSHOT", "") + "/latest/linux/x64/tar/builds/opensearch/plugins/opensearch-job-scheduler-" + job_scheduler_version.replace("-SNAPSHOT", "") + ".zip"
 
 testClusters.integTest {
     testDistribution = "INTEG_TEST"
@@ -292,7 +295,7 @@ testClusters.integTest {
                     if (!dir.exists()) {
                         dir.mkdirs()
                     }
-                    File file = new File(dir, "opensearch-job-scheduler-" + opensearch_build + ".zip")
+                    File file = new File(dir, "opensearch-job-scheduler-" + job_scheduler_build + ".zip")
                     if (!file.exists()) {
                         new URL(jobSchedulerURL).withInputStream{ ins -> file.withOutputStream{ it << ins }}
                     }
@@ -366,15 +369,15 @@ task prepareBwcTests {
                         return new RegularFile() {
                             @Override
                             File getAsFile() {
-                                File dir = new File(bwcFilePath + "job-scheduler/" + project.version)
+                                File dir = new File(bwcFilePath + "job-scheduler/" + job_scheduler_version)
                                 if (!dir.exists()) {
                                     dir.mkdirs()
                                 }
-                                File file = new File(dir, "opensearch-job-scheduler-" + project.version + ".zip")
+                                File file = new File(dir, "opensearch-job-scheduler-" + job_scheduler_version + ".zip")
                                 if (!file.exists()) {
                                     new URL(jobSchedulerURL).withInputStream{ ins -> file.withOutputStream{ it << ins }}
                                 }
-                                return fileTree(bwcFilePath + "job-scheduler/" + project.version).getSingleFile()
+                                return fileTree(bwcFilePath + "job-scheduler/" + job_scheduler_version).getSingleFile()
                             }
                         }
                     }
